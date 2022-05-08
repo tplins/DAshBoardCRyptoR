@@ -1,0 +1,141 @@
+---
+title: "Stock Markets"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: scroll
+    runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(dplyr)
+library(tidyquant)
+library(ggplot2)
+library(plotly)
+library(DT)
+
+
+prices <- c(
+  "BTC","ETH","LTC",
+  "BNB","RVN","ERG"
+) %>% 
+  paste0("-USD") %>%
+  tq_get(get="stock.prices",from="2014-01-01") %>%
+  mutate(symbol = sub("-USD","",symbol))
+  
+
+table_period <- data.frame(
+  period=c("1M","2M","3M"),
+  days=c(30,60,120)
+)
+
+
+```
+Column {.sidebar}
+--------
+
+```{r}
+selectInput(
+  "stock", label = "Choose Stock",
+  choices = c(
+    "BTC","ETH","LTC","BNB","RVN","ERG"
+  )
+)
+
+selectInput(
+  "period", label = "Choose Period",
+  choices = c(
+    "1M","2M","3M"
+  )
+)
+```
+
+Row {data-width=500}
+-----
+
+### Tendecies
+
+```{r}
+renderPlotly({
+  period<-Sys.Date()-filter(table_period,
+  period==input$period)$days
+  
+  prices %>%
+    filter(date>=period,symbol==input$stock) %>% 
+    ggplot()+
+    aes(x=date,y=adjusted)+
+    geom_line()+
+    labs(x="",y="Cote")+
+    ggtitle(label=input$stock)+
+    theme(
+      panel.background = element_blank(),
+      plot.title = element_text(size=18)
+    )
+})
+```
+
+### All Tendecies
+
+```{r}
+renderPlotly({
+  period<-Sys.Date()-filter(table_period,
+  period==input$period)$days
+  
+  prices %>%
+    filter(date>=period) %>% 
+    ggplot()+
+    aes(x=date,y=adjusted, color=symbol)+
+    geom_line(size=0.5)+
+    labs(x="",y="Cote",color="stock")+
+    theme(panel.background = element_blank())
+})
+```
+
+Row {data-width=500}
+-----
+
+
+### Cotes
+
+```{r}
+renderDataTable({
+  period<-Sys.Date()-filter(table_period,period==input$period)$days
+  
+  prices %>% 
+    filter(date>=period, symbol==input$stock) %>%
+    mutate(across(where(is.double),round,digits=2)) %>%
+    arrange(desc(date)) %>%
+    datatable(rownames=FALSE)
+})
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
